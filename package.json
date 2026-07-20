@@ -1,0 +1,11 @@
+{
+  "name": "volvera-agency-site",
+  "version": "1.0.0",
+  "description": "Volvera — retention email & SMS studio for beauty and wellness brands. Static one-page site.",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve . -l 3000",
+    "build": "echo 'Static site — no build step required. Deploy the repository root as-is.'",
+    "start": "npx serve . -l 3000"
+  }
+}
