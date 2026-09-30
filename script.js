@@ -424,5 +424,188 @@ if (wfSection && wfTrack && wfFrames.length && !reducedMotion) {
     { passive: true }
   );
   window.addEventListener("resize", syncFrame, { passive: true });
+
+  /* --- One gesture moves exactly one point, however fast the scroll --- */
+  const lastFrame = wfFrames.length - 1;
+  const STEP_LOCK_MS = 1000; // time for a point to settle before the next
+  const GESTURE_GAP_MS = 170; // silence that separates one wheel gesture from the next
+  let lockedUntil = 0;
+  let lastWheelAt = 0;
+  let wheelGestureUsed = false;
+  let touchStartY = null;
+  let touchGestureUsed = false;
+  let selfScrolling = false;
+  let navigating = false;
+  let navTimer = null;
+  let prevScrollY = window.scrollY;
+
+  function trackRange() {
+    const top = wfTrack.getBoundingClientRect().top + window.scrollY;
+    return { top, end: top + wfTrack.offsetHeight - window.innerHeight };
+  }
+
+  function inTrack(y) {
+    const { top, end } = trackRange();
+    return y >= top - 1 && y <= end + 1;
+  }
+
+  // Scroll position at the middle of a frame's slot on the track
+  function frameTop(i) {
+    const { top, end } = trackRange();
+    return top + ((i + 0.5) / wfFrames.length) * (end - top);
+  }
+
+  function holdAt(y) {
+    selfScrolling = true;
+    window.scrollTo({ top: y, behavior: "instant" });
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        selfScrolling = false;
+      })
+    );
+  }
+
+  function goToFrame(i) {
+    const target = Math.max(0, Math.min(lastFrame, i));
+    holdAt(frameTop(target));
+    showFrame(target);
+    lockedUntil = performance.now() + STEP_LOCK_MS;
+  }
+
+  // Scrolling past the first or last point is the only way out
+  const leaving = (dir) =>
+    (dir > 0 && activeFrame === lastFrame) || (dir < 0 && activeFrame === 0);
+
+  // Wheel and trackpad: a gesture is a burst of events; momentum is part of it
+  window.addEventListener(
+    "wheel",
+    (e) => {
+      if (navigating || e.ctrlKey || !e.deltaY) return;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+      const now = performance.now();
+      if (now - lastWheelAt > GESTURE_GAP_MS) wheelGestureUsed = false;
+      lastWheelAt = now;
+
+      const dir = Math.sign(e.deltaY);
+      const y = window.scrollY;
+
+      if (!inTrack(y)) {
+        // Arriving from outside: stop on the edge point instead of flying through
+        const { top, end } = trackRange();
+        const next = y + e.deltaY;
+        if ((dir > 0 && y < top && next >= top) || (dir < 0 && y > end && next <= end)) {
+          e.preventDefault();
+          goToFrame(dir > 0 ? 0 : lastFrame);
+          wheelGestureUsed = true;
+        }
+        return;
+      }
+
+      if (leaving(dir) && !wheelGestureUsed && now >= lockedUntil) return;
+
+      e.preventDefault();
+      if (wheelGestureUsed || now < lockedUntil) {
+        wheelGestureUsed = true; // swallow the rest of this gesture
+        return;
+      }
+      wheelGestureUsed = true;
+      goToFrame(activeFrame + dir);
+    },
+    { passive: false }
+  );
+
+  // Touch: one swipe, one point
+  window.addEventListener(
+    "touchstart",
+    (e) => {
+      touchStartY = e.touches.length === 1 ? e.touches[0].clientY : null;
+      touchGestureUsed = false;
+    },
+    { passive: true }
+  );
+
+  window.addEventListener(
+    "touchmove",
+    (e) => {
+      if (touchStartY === null || navigating) return;
+      const dy = touchStartY - e.touches[0].clientY; // positive = scrolling down
+      const dir = Math.sign(dy);
+      if (!dir || !inTrack(window.scrollY)) return;
+
+      const now = performance.now();
+      if (leaving(dir) && !touchGestureUsed && now >= lockedUntil) return;
+
+      e.preventDefault();
+      if (touchGestureUsed || now < lockedUntil) return;
+      if (Math.abs(dy) > 36) {
+        touchGestureUsed = true;
+        goToFrame(activeFrame + dir);
+      }
+    },
+    { passive: false }
+  );
+
+  window.addEventListener(
+    "touchend",
+    () => {
+      touchStartY = null;
+    },
+    { passive: true }
+  );
+
+  // Keyboard: arrows, page keys and space step one point
+  window.addEventListener("keydown", (e) => {
+    if (navigating || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    const t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON)$/.test(t.tagName))) return;
+
+    let dir = 0;
+    if (e.key === "ArrowDown" || e.key === "PageDown" || (e.key === " " && !e.shiftKey)) dir = 1;
+    else if (e.key === "ArrowUp" || e.key === "PageUp" || (e.key === " " && e.shiftKey)) dir = -1;
+    if (!dir || !inTrack(window.scrollY) || leaving(dir)) return;
+
+    e.preventDefault();
+    if (performance.now() >= lockedUntil) goToFrame(activeFrame + dir);
+  });
+
+  // Catch anything else (a touch fling, a scrollbar drag) arriving at the
+  // section, and hold the stage still while a point settles
+  window.addEventListener(
+    "scroll",
+    () => {
+      const y = window.scrollY;
+      if (!selfScrolling && !navigating) {
+        const { top, end } = trackRange();
+        const inside = y >= top - 1 && y <= end + 1;
+        if (inside && prevScrollY < top - 1) goToFrame(0);
+        else if (inside && prevScrollY > end + 1) goToFrame(lastFrame);
+        else if (inside && performance.now() < lockedUntil) holdAt(frameTop(activeFrame));
+      }
+      prevScrollY = window.scrollY;
+    },
+    { passive: true }
+  );
+
+  // Menu and button links glide through the section untouched
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest('a[href^="#"]')) return;
+    navigating = true;
+    clearTimeout(navTimer);
+    navTimer = setTimeout(() => {
+      navigating = false;
+      prevScrollY = window.scrollY;
+    }, 2500);
+  });
+
+  window.addEventListener("scrollend", () => {
+    if (!navigating) return;
+    clearTimeout(navTimer);
+    navTimer = setTimeout(() => {
+      navigating = false;
+      prevScrollY = window.scrollY;
+    }, 120);
+  });
+
   syncFrame();
 }
