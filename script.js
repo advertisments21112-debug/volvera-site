@@ -294,3 +294,84 @@ if (magnetic && window.matchMedia("(hover: hover)").matches && !reducedMotion) {
     { passive: true }
   );
 }
+
+/* --- Section headlines: same word reveal as the hero, on scroll --- */
+const sectionHeadlines = document.querySelectorAll(
+  ".why__headline, .system__headline, .reviews__headline, .designs__headline, .process__headline, .founder-note__title, .contact__headline"
+);
+
+if (!reducedMotion && "IntersectionObserver" in window) {
+  const headlineObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-revealed");
+        headlineObserver.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.3 }
+  );
+
+  sectionHeadlines.forEach((el) => {
+    splitIntoWords(el);
+    el.classList.add("reveal-words");
+    el.querySelectorAll(".w-mask > span").forEach((part, i) => {
+      part.style.transitionDelay = i * 70 + "ms";
+    });
+    headlineObserver.observe(el);
+  });
+}
+
+/* --- Parallax: media drifts slightly against the scroll --- */
+const parallaxItems = [
+  { el: document.querySelector(".hero__video"), depth: 0.05 },
+  { el: document.querySelector(".founder-note__photo"), depth: 0.07 },
+  { el: document.querySelector(".reviews__video"), depth: 0.05 },
+].filter((item) => item.el);
+
+let parallaxTicking = false;
+
+function runParallax() {
+  parallaxTicking = false;
+  const mid = window.innerHeight / 2;
+  parallaxItems.forEach(({ el, depth }) => {
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom < -200 || rect.top > window.innerHeight + 200) return;
+    const offset = (rect.top + rect.height / 2 - mid) * depth;
+    el.style.transform = "translate3d(0, " + offset.toFixed(1) + "px, 0)";
+  });
+}
+
+if (!reducedMotion && parallaxItems.length) {
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (!parallaxTicking) {
+        parallaxTicking = true;
+        requestAnimationFrame(runParallax);
+      }
+    },
+    { passive: true }
+  );
+  runParallax();
+}
+
+/* --- Cards lean toward the cursor --- */
+if (!reducedMotion && window.matchMedia("(hover: hover)").matches) {
+  document.querySelectorAll(".why__cards .why-card").forEach((card) => {
+    card.addEventListener("mousemove", (e) => {
+      const rect = card.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width - 0.5;
+      const py = (e.clientY - rect.top) / rect.height - 0.5;
+      card.classList.add("is-tilting");
+      card.style.transform =
+        "perspective(900px) rotateX(" + (-py * 5).toFixed(2) + "deg) rotateY(" +
+        (px * 5).toFixed(2) + "deg) translateY(-4px)";
+    });
+
+    card.addEventListener("mouseleave", () => {
+      card.classList.remove("is-tilting");
+      card.style.transform = "";
+    });
+  });
+}

@@ -214,7 +214,7 @@ section {
   height: 520px;
   bottom: -140px;
   right: 4%;
-  background: radial-gradient(circle, rgba(109, 40, 217, 0.18), transparent 70%);
+  background: radial-gradient(circle, rgba(154, 112, 48, 0.18), transparent 70%);
 }
 
 .hero__grid {
@@ -348,7 +348,7 @@ section {
   /* Light stop kept ≥4.5:1 contrast with the white label (WCAG AA) */
   background: linear-gradient(135deg, #d9a857, #b7873d 60%, #9e7433);
   color: #ffffff;
-  border: 1px solid rgba(196, 181, 253, 0.55);
+  border: 1px solid rgba(227, 195, 138, 0.55);
   box-shadow:
     0 0 24px rgba(194, 149, 76, 0.55),
     0 0 60px rgba(194, 149, 76, 0.3),
@@ -379,9 +379,9 @@ section {
     160deg,
     rgba(227, 195, 138, 0.5),
     rgba(255, 255, 255, 0.08) 35%,
-    rgba(109, 40, 217, 0.4)
+    rgba(154, 112, 48, 0.4)
   );
-  box-shadow: 0 30px 90px rgba(109, 40, 217, 0.22);
+  box-shadow: 0 30px 90px rgba(154, 112, 48, 0.22);
 }
 
 .video-frame > * {
@@ -402,7 +402,7 @@ section {
   aspect-ratio: 16 / 9;
   background:
     radial-gradient(ellipse at 30% 20%, rgba(194, 149, 76, 0.16), transparent 55%),
-    radial-gradient(ellipse at 75% 85%, rgba(109, 40, 217, 0.14), transparent 55%),
+    radial-gradient(ellipse at 75% 85%, rgba(154, 112, 48, 0.14), transparent 55%),
     var(--bg-elevated);
   display: flex;
   flex-direction: column;
@@ -502,7 +502,7 @@ section {
   /* Subtle purple wash over the section background */
   background:
     radial-gradient(ellipse 80% 55% at 15% 0%, rgba(194, 149, 76, 0.08), transparent 65%),
-    linear-gradient(180deg, rgba(109, 40, 217, 0.05), transparent 45%);
+    linear-gradient(180deg, rgba(154, 112, 48, 0.05), transparent 45%);
 }
 
 /* Soft glow behind the glass card so the blur has something to catch */
@@ -608,7 +608,7 @@ section {
   border: 1px solid rgba(255, 255, 255, 0.05);
   background: linear-gradient(
     135deg,
-    rgba(139, 124, 246, 0.07),
+    rgba(194, 149, 76, 0.07),
     rgba(255, 255, 255, 0.02) 55%,
     rgba(255, 255, 255, 0.01)
   );
@@ -791,7 +791,7 @@ section {
 }
 
 .system__row + .system__row {
-  border-top: 1px solid rgba(195, 185, 230, 0.28);
+  border-top: 1px solid rgba(214, 202, 180, 0.28);
 }
 
 .system__star {
@@ -2154,5 +2154,103 @@ section {
 
   .grain {
     opacity: 0.3;
+  }
+}
+
+/* ============================================================
+   HERO MEASURE + SECOND MOTION PASS
+   ============================================================ */
+
+/* Description never runs wider than the headline above it */
+.hero__description {
+  max-width: 540px;
+}
+
+/* Fine print stays within the CTA's footprint */
+.hero__fineprint {
+  max-width: 268px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* --- Section headlines reveal word by word, like the hero --- */
+.reveal-words .w-mask > span {
+  transform: translateY(105%);
+  transition: transform 0.95s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.reveal-words.is-revealed .w-mask > span {
+  transform: translateY(0);
+}
+
+/* --- Sparkles breathe --- */
+.system__star svg,
+.walkaway__star svg {
+  animation: twinkle 4.5s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+
+.system__row:nth-child(2) .system__star svg { animation-delay: 0.6s; }
+.system__row:nth-child(3) .system__star svg { animation-delay: 1.2s; }
+.system__row:nth-child(4) .system__star svg { animation-delay: 1.8s; }
+.walkaway li:nth-child(2) .walkaway__star svg { animation-delay: 0.5s; }
+.walkaway li:nth-child(3) .walkaway__star svg { animation-delay: 1s; }
+.walkaway li:nth-child(4) .walkaway__star svg { animation-delay: 1.5s; }
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.72; transform: scale(0.92) rotate(0deg); }
+  50%      { opacity: 1;    transform: scale(1.08) rotate(12deg); }
+}
+
+/* --- Media drifts against the scroll --- */
+.hero__video,
+.founder-note__photo,
+.reviews__video {
+  will-change: transform;
+}
+
+/* --- Cards tilt toward the cursor --- */
+.why__cards .why-card {
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.why__cards .why-card.is-tilting {
+  transition: transform 0.12s ease-out, border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+/* --- Live stage on the timeline gets a warmer plate --- */
+.tl-item.is-active .tl-card {
+  box-shadow: 0 0 40px rgba(194, 149, 76, 0.16),
+              0 0 0 1px rgba(227, 195, 138, 0.28) inset;
+}
+
+.tl-item.is-active .tl-num {
+  animation: num-glow 3.4s ease-in-out infinite;
+}
+
+@keyframes num-glow {
+  0%, 100% { filter: drop-shadow(0 0 0 rgba(227, 195, 138, 0)); }
+  50%      { filter: drop-shadow(0 0 10px rgba(227, 195, 138, 0.45)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .system__star svg,
+  .walkaway__star svg,
+  .tl-item.is-active .tl-num {
+    animation: none;
+  }
+
+  .reveal-words .w-mask > span {
+    transform: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero__description {
+    max-width: none;
   }
 }
