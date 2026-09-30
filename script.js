@@ -110,7 +110,7 @@ updateTimeline();
 
 // Scroll-reveal: fade sections' content up as it enters the viewport
 const revealTargets = document.querySelectorAll(
-  ".why__head, .founder-note, .why__cards .why-card, .why__nofit, " +
+  ".why__head, .founder-note, .why__nofit, " +
     ".system__head, .system__row, " +
     ".designs__head, .folder, " +
     ".reviews__headline, .reviews__about, .reviews__video, .reviews__logolabel, .reviews__logos, " +
@@ -364,14 +364,170 @@ if (!reducedMotion && window.matchMedia("(hover: hover)").matches) {
       const px = (e.clientX - rect.left) / rect.width - 0.5;
       const py = (e.clientY - rect.top) / rect.height - 0.5;
       card.classList.add("is-tilting");
-      card.style.transform =
-        "perspective(900px) rotateX(" + (-py * 5).toFixed(2) + "deg) rotateY(" +
-        (px * 5).toFixed(2) + "deg) translateY(-4px)";
+      // Composed with the entrance transform via CSS (see --enter)
+      card.style.setProperty(
+        "--tilt",
+        "rotateX(" + (-py * 5).toFixed(2) + "deg) rotateY(" +
+          (px * 5).toFixed(2) + "deg) translateY(-4px)"
+      );
     });
 
     card.addEventListener("mouseleave", () => {
       card.classList.remove("is-tilting");
-      card.style.transform = "";
+      card.style.removeProperty("--tilt");
     });
   });
+}
+
+/* ============================================================
+   Why section — one block at a time, each with its own motion
+   ============================================================ */
+
+const whySection = document.getElementById("why");
+const whyTrack = document.querySelector(".why__track");
+const whyCards = [...document.querySelectorAll(".why__cards .why-card")];
+const whyRail = [...document.querySelectorAll(".why__rail-seg > i")];
+
+const clamp01 = (v) => Math.min(1, Math.max(0, v));
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+
+// Each entrance echoes what its card says
+const entrances = [
+  // Beauty & Wellness Focus: rises and comes into focus
+  (t) => ({
+    enter: "translate3d(0, " + ((1 - t) * 150).toFixed(1) + "px, 0) rotate(" + ((1 - t) * -7).toFixed(2) + "deg)",
+    filter: t > 0.999 ? "none" : "blur(" + ((1 - t) * 8).toFixed(2) + "px)",
+  }),
+  // Built for $1M–$10M: sweeps in along the trend line
+  (t) => ({
+    enter: "translate3d(" + ((1 - t) * 240).toFixed(1) + "px, 0, 0) skewX(" + ((1 - t) * -14).toFixed(2) + "deg)",
+    filter: "none",
+  }),
+  // Small by Design: starts small, grows into place
+  (t) => ({
+    enter: "translate3d(0, " + ((1 - t) * 40).toFixed(1) + "px, 0) scale(" + (0.5 + 0.5 * t).toFixed(3) + ")",
+    filter: "none",
+  }),
+  // Email & SMS Only: unfolds like a letter
+  (t) => ({
+    enter: "translate3d(0, " + ((1 - t) * -90).toFixed(1) + "px, 0) rotateX(" + ((1 - t) * -80).toFixed(2) + "deg)",
+    filter: "none",
+  }),
+];
+
+// Icons draw themselves as each block lands
+const iconStrokes = whyCards.map((card) =>
+  [...card.querySelectorAll(".feat__icon svg *")]
+    .filter((el) => typeof el.getTotalLength === "function")
+    .map((el) => ({ el, len: el.getTotalLength() }))
+);
+
+function setCard(i, raw) {
+  const t = easeOut(raw);
+  const card = whyCards[i];
+  const e = entrances[i](t);
+  card.style.setProperty("--enter", e.enter);
+  card.style.opacity = clamp01(raw * 1.6).toFixed(3);
+  card.style.filter = e.filter;
+
+  const draw = clamp01((raw - 0.45) / 0.55);
+  iconStrokes[i].forEach(({ el, len }) => {
+    el.style.strokeDasharray = len;
+    el.style.strokeDashoffset = (len * (1 - draw)).toFixed(2);
+  });
+
+  if (whyRail[i]) whyRail[i].style.transform = "scaleX(" + raw.toFixed(3) + ")";
+}
+
+function resetCards() {
+  whyCards.forEach((card, i) => {
+    card.style.removeProperty("--enter");
+    card.style.opacity = "";
+    card.style.filter = "";
+    card.style.transitionDelay = "";
+    iconStrokes[i].forEach(({ el }) => {
+      el.style.strokeDasharray = "";
+      el.style.strokeDashoffset = "";
+    });
+  });
+}
+
+// --- Pinned: scroll position is the timeline ---
+let whyTicking = false;
+
+function runWhySequence() {
+  whyTicking = false;
+  const rect = whyTrack.getBoundingClientRect();
+  const lead = window.innerHeight * 0.35; // start as the section arrives
+  const travel = whyTrack.offsetHeight - window.innerHeight + lead;
+  const p = clamp01((lead - rect.top) / travel);
+
+  whyCards.forEach((_, i) => {
+    setCard(i, clamp01((p - (0.04 + i * 0.2)) / 0.28));
+  });
+}
+
+function onWhyScroll() {
+  if (!whyTicking) {
+    whyTicking = true;
+    requestAnimationFrame(runWhySequence);
+  }
+}
+
+// --- Stacked: each block performs once as it scrolls into view ---
+let whyObserver = null;
+
+function startStacked() {
+  whyCards.forEach((_, i) => setCard(i, 0));
+  void whySection.offsetHeight; // commit the start state before transitions apply
+  whySection.classList.add("why--stacked");
+
+  whyObserver = new IntersectionObserver(
+    (entries) => {
+      entries
+        .filter((entry) => entry.isIntersecting)
+        .forEach((entry, n) => {
+          const i = whyCards.indexOf(entry.target);
+          entry.target.style.transitionDelay = n * 120 + "ms";
+          setCard(i, 1);
+          whyObserver.unobserve(entry.target);
+        });
+    },
+    { threshold: 0.25 }
+  );
+  whyCards.forEach((card) => whyObserver.observe(card));
+}
+
+const pinQuery = window.matchMedia("(min-width: 861px) and (min-height: 680px)");
+let whyMode = null;
+
+function setWhyMode() {
+  const next = pinQuery.matches ? "pinned" : "stacked";
+  if (next === whyMode) return;
+  const first = whyMode === null;
+  whyMode = next;
+
+  window.removeEventListener("scroll", onWhyScroll);
+  window.removeEventListener("resize", onWhyScroll);
+  if (whyObserver) {
+    whyObserver.disconnect();
+    whyObserver = null;
+  }
+  whySection.classList.remove("why--pinned", "why--stacked");
+  resetCards();
+
+  if (next === "pinned") {
+    whySection.classList.add("why--pinned");
+    window.addEventListener("scroll", onWhyScroll, { passive: true });
+    window.addEventListener("resize", onWhyScroll, { passive: true });
+    runWhySequence();
+  } else if (first) {
+    startStacked();
+  }
+  // switching from pinned to stacked mid-visit: leave every block visible
+}
+
+if (whySection && whyTrack && whyCards.length && !reducedMotion) {
+  setWhyMode();
+  pinQuery.addEventListener("change", setWhyMode);
 }

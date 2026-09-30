@@ -499,6 +499,7 @@ section {
 .why {
   position: relative;
   overflow: hidden;
+  overflow: clip; /* clip, not hidden — hidden would break the sticky stage */
   /* Subtle purple wash over the section background */
   background:
     radial-gradient(ellipse 80% 55% at 15% 0%, rgba(194, 149, 76, 0.08), transparent 65%),
@@ -2253,4 +2254,99 @@ section {
   .hero__description {
     max-width: none;
   }
+}
+
+/* ============================================================
+   WHY SECTION — pinned motion sequence, one block at a time
+   ============================================================ */
+
+/* Entrance transform and cursor tilt compose instead of fighting */
+.why__cards .why-card,
+.why__cards .why-card:hover {
+  transform: perspective(1000px)
+             var(--enter, translate3d(0, 0, 0))
+             var(--tilt, translate3d(0, 0, 0));
+}
+
+/* The letter unfolds from its top edge */
+.why__cards .why-card:nth-child(4) {
+  transform-origin: 50% 0;
+}
+
+.why__rail {
+  display: none;
+}
+
+/* --- Pinned mode (desktop): the stage holds while blocks arrive --- */
+.why--pinned {
+  padding-top: 0;
+  padding-bottom: 96px;
+}
+
+.why--pinned .why__track {
+  height: 300vh;
+}
+
+.why--pinned .why__stage {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  padding-top: var(--nav-height);
+}
+
+.why--pinned .why__stage > .section__inner {
+  width: 100%;
+}
+
+.why--pinned .why__head {
+  margin-bottom: 48px;
+}
+
+.why--pinned .why__cards {
+  margin-bottom: 44px;
+}
+
+/* Scroll is the clock here, so keep transform easing short */
+.why--pinned .why__cards .why-card {
+  transition: transform 0.08s linear, border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+.why--pinned .why__rail {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.why__rail-seg {
+  width: 56px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(244, 239, 231, 0.12);
+  overflow: hidden;
+}
+
+.why__rail-seg > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), #f0d9a8);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+/* --- Stacked mode (tablet/mobile): each block performs as it arrives --- */
+.why--stacked .why__cards .why-card {
+  transition: transform 1s cubic-bezier(0.22, 1, 0.36, 1),
+              opacity 0.8s ease, filter 0.8s ease,
+              border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.why--stacked .why__cards .why-card .feat__icon svg * {
+  transition: stroke-dashoffset 1.1s cubic-bezier(0.65, 0, 0.35, 1) 0.35s;
+}
+
+.why__after {
+  margin-top: 8px;
 }
