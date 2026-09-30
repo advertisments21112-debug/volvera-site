@@ -265,36 +265,6 @@ if (heroHeadline && !reducedMotion) {
   requestAnimationFrame(() => heroHeadline.classList.add("is-revealed"));
 }
 
-// Magnetic pull on the hero's primary action
-const magnetic = document.querySelector(".hero__actions .btn--primary");
-
-if (magnetic && window.matchMedia("(hover: hover)").matches && !reducedMotion) {
-  magnetic.classList.add("btn--magnetic");
-  const RANGE = 90;
-
-  window.addEventListener(
-    "mousemove",
-    (e) => {
-      const rect = magnetic.getBoundingClientRect();
-      const cx = rect.left + rect.width / 2;
-      const cy = rect.top + rect.height / 2;
-      const dx = e.clientX - cx;
-      const dy = e.clientY - cy;
-      const dist = Math.hypot(dx, dy);
-
-      if (dist < rect.width / 2 + RANGE) {
-        magnetic.classList.add("is-pulling");
-        magnetic.style.transform =
-          "translate(" + dx * 0.22 + "px, " + dy * 0.28 + "px)";
-      } else if (magnetic.style.transform) {
-        magnetic.classList.remove("is-pulling");
-        magnetic.style.transform = "";
-      }
-    },
-    { passive: true }
-  );
-}
-
 /* --- Section headlines: same word reveal as the hero, on scroll --- */
 const sectionHeadlines = document.querySelectorAll(
   ".why__headline, .system__headline, .reviews__headline, .designs__headline, .process__headline, .founder-note__title, .contact__headline"
