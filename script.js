@@ -204,3 +204,93 @@ folder.querySelectorAll(".folder__photo").forEach((photo) => {
     photo.addEventListener("pointercancel", onUp);
   });
 });
+
+/* ============================================================
+   Motion layer
+   ============================================================ */
+
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Scroll progress rail
+const progressBar = document.getElementById("progress");
+
+function updateProgress() {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+  progressBar.style.width = pct + "%";
+}
+
+window.addEventListener("scroll", updateProgress, { passive: true });
+window.addEventListener("resize", updateProgress, { passive: true });
+updateProgress();
+
+// Hero headline: wrap each word in a mask so it can rise into place
+const heroHeadline = document.querySelector(".hero__headline");
+
+function splitIntoWords(node) {
+  [...node.childNodes].forEach((child) => {
+    if (child.nodeType === Node.TEXT_NODE) {
+      const words = child.textContent.split(/(\s+)/);
+      const frag = document.createDocumentFragment();
+      words.forEach((word) => {
+        if (!word.trim()) {
+          frag.appendChild(document.createTextNode(word));
+          return;
+        }
+        const mask = document.createElement("span");
+        mask.className = "w-mask";
+        const inner = document.createElement("span");
+        inner.textContent = word;
+        mask.appendChild(inner);
+        frag.appendChild(mask);
+      });
+      child.replaceWith(frag);
+    } else if (child.nodeType === Node.ELEMENT_NODE) {
+      // Styled spans (the gradient word) stay whole — splitting them would
+      // strip the background the text is clipped from.
+      const mask = document.createElement("span");
+      mask.className = "w-mask";
+      child.replaceWith(mask);
+      mask.appendChild(child);
+    }
+  });
+}
+
+if (heroHeadline && !reducedMotion) {
+  splitIntoWords(heroHeadline);
+  const parts = heroHeadline.querySelectorAll(".w-mask > span");
+  parts.forEach((part, i) => {
+    part.style.transitionDelay = 90 + i * 85 + "ms";
+  });
+  requestAnimationFrame(() => heroHeadline.classList.add("is-revealed"));
+}
+
+// Magnetic pull on the hero's primary action
+const magnetic = document.querySelector(".hero__actions .btn--primary");
+
+if (magnetic && window.matchMedia("(hover: hover)").matches && !reducedMotion) {
+  magnetic.classList.add("btn--magnetic");
+  const RANGE = 90;
+
+  window.addEventListener(
+    "mousemove",
+    (e) => {
+      const rect = magnetic.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < rect.width / 2 + RANGE) {
+        magnetic.classList.add("is-pulling");
+        magnetic.style.transform =
+          "translate(" + dx * 0.22 + "px, " + dy * 0.28 + "px)";
+      } else if (magnetic.style.transform) {
+        magnetic.classList.remove("is-pulling");
+        magnetic.style.transform = "";
+      }
+    },
+    { passive: true }
+  );
+}
