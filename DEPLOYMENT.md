@@ -69,3 +69,19 @@ npm run dev    # serves the site at http://localhost:3000 (uses npx serve)
 ```
 
 Or open `index.html` directly / use any static file server.
+
+## Cache busting (important on every update)
+
+Hostinger's CDN and visitors' browsers cache `styles.css` and `script.js`.
+`index.html` references them with a content fingerprint, e.g.
+`styles.css?v=2a44977d`. After changing either file, refresh the
+fingerprints so browsers fetch the new version:
+
+```bash
+CSSV=$(md5 -q styles.css | cut -c1-8); JSV=$(md5 -q script.js | cut -c1-8)
+sed -i '' -E "s#styles\.css(\?v=[a-f0-9]+)?\"#styles.css?v=$CSSV\"#; s#script\.js(\?v=[a-f0-9]+)?\"#script.js?v=$JSV\"#" index.html
+```
+
+Auto-deployment is on: a push to `main` deploys by itself. Don't also
+press Redeploy in hPanel at the same moment, because two overlapping
+deploys fail with `shallow file has changed since we read it`.
