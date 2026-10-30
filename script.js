@@ -337,6 +337,8 @@ const wfRing = document.querySelector(".wf-ring");
 const wfCount = document.querySelector(".wf-count");
 const wfNow = document.querySelector(".wf-count__now");
 const wfFill = document.querySelector(".wf-count__fill");
+const wfPrev = document.querySelector(".wf-nav__btn--prev");
+const wfNext = document.querySelector(".wf-nav__btn--next");
 
 if (wfSection && wfTrack && wfFrames.length && !reducedMotion) {
   wfSection.classList.add("why--frames");
@@ -367,6 +369,13 @@ if (wfSection && wfTrack && wfFrames.length && !reducedMotion) {
     wfRing.style.setProperty("--ring-rot", (index - 1) * 90 + "deg");
 
     wfCount.classList.toggle("is-visible", index > 0);
+    if (wfPrev) wfPrev.disabled = index === 0;
+    if (wfNext) {
+      wfNext.setAttribute(
+        "aria-label",
+        index === wfFrames.length - 1 ? "Continue to the next section" : "Next point"
+      );
+    }
     if (index > 0) {
       wfNow.textContent = String(index).padStart(2, "0");
       wfFill.style.transform = "scaleX(" + (index / points).toFixed(3) + ")";
@@ -576,6 +585,33 @@ if (wfSection && wfTrack && wfFrames.length && !reducedMotion) {
       prevScrollY = window.scrollY;
     }, 120);
   });
+
+  // Back / next buttons: one point per click. Next on the last point
+  // carries on past the section.
+  function leaveSection() {
+    const after = document.querySelector(".why__after");
+    if (!after) return;
+    navigating = true;
+    clearTimeout(navTimer);
+    navTimer = setTimeout(() => {
+      navigating = false;
+      prevScrollY = window.scrollY;
+    }, 2500);
+    window.scrollTo({
+      top: after.getBoundingClientRect().top + window.scrollY - window.innerHeight * 0.2,
+      behavior: "smooth",
+    });
+  }
+
+  if (wfPrev && wfNext) {
+    wfPrev.addEventListener("click", () => {
+      if (activeFrame > 0) goToFrame(activeFrame - 1);
+    });
+    wfNext.addEventListener("click", () => {
+      if (activeFrame < lastFrame) goToFrame(activeFrame + 1);
+      else leaveSection();
+    });
+  }
 
   syncFrame();
 }

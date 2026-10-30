@@ -2945,3 +2945,73 @@ h3,
 .chomp__sym--cash svg {
   filter: drop-shadow(0 0 6px rgba(252, 115, 77, 0.9));
 }
+
+/* ============================================================
+   WHY FRAMES — back / next buttons beside the counter
+   ============================================================ */
+
+/* Only in the pinned frame view; the static list doesn't need them */
+.wf-nav {
+  display: none;
+}
+
+.why--frames .wf-controls {
+  position: absolute;
+  bottom: 52px;
+  left: max(0px, calc((100% - 1200px) / 2));
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.why--frames .wf-count {
+  position: static;
+}
+
+.why--frames .wf-nav {
+  display: flex;
+  gap: 10px;
+}
+
+.wf-nav__btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  /* solid fill so the logo arc never shows through on phones */
+  background: rgba(2, 7, 10, 0.88);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease,
+              box-shadow 0.25s ease, transform 0.25s ease, opacity 0.25s ease;
+}
+
+.wf-nav__btn:hover:not(:disabled) {
+  border-color: #fc734d;
+  background: #fc734d;
+  color: #02070a;
+  box-shadow: 0 0 20px rgba(252, 115, 77, 0.45);
+  transform: translateY(-1px);
+}
+
+.wf-nav__btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.95);
+}
+
+.wf-nav__btn:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+@media (max-width: 700px) {
+  .why--frames .wf-controls {
+    bottom: 28px;
+    gap: 18px;
+  }
+}
